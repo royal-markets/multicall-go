@@ -283,7 +283,7 @@ func (calls ViewCalls) decodeRaw(raw string) (*Result, error) {
 
     for index, call := range calls {
         callResult := CallResult{
-            Success: decoded.Returns[index].Success,
+            //Success: decoded.Returns[index].Success,
             Raw:     decoded.Returns[index].Data,
             Decoded: []interface{}{},
         }
@@ -303,16 +303,15 @@ func (calls ViewCalls) decode(raw string) (*Result, error) {
     result.Calls = make(map[string]CallResult)
     for index, call := range calls {
         callResult := CallResult{
-            Success: decoded.Returns[index].Success,
-            Raw:     decoded.Returns[index].Data,
+            //Success: decoded.Returns[index].Success,
+            Raw: decoded.Returns[index].Data,
         }
-        if decoded.Returns[index].Success {
-            returnValues, err := call.decode(decoded.Returns[index].Data)
-            if err != nil {
-                return nil, err
-            }
-            callResult.Decoded = returnValues
+       
+        returnValues, err := call.decode(decoded.Returns[index].Data)
+        if err != nil {
+            return nil, err
         }
+        callResult.Decoded = returnValues
         result.Calls[call.id] = callResult
     }
 

@@ -1,16 +1,16 @@
 package multicall
 
 import (
-	"encoding/hex"
-	"encoding/json"
-	"fmt"
-	"math/big"
-	"reflect"
-	"regexp"
-	"strings"
+    "encoding/hex"
+    "encoding/json"
+    "fmt"
+    "math/big"
+    "reflect"
+    "regexp"
+    "strings"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/crypto"
+    "github.com/ethereum/go-ethereum/accounts/abi"
+    "github.com/ethereum/go-ethereum/crypto"
 )
 
 type ViewCall struct {
@@ -209,9 +209,9 @@ func (calls ViewCalls) callData() ([]byte, error) {
         return nil, err
     }
     //boolean, err := abi.NewType("bool", "", nil)
-    if err != nil {
-        return nil, err
-    }
+    //if err != nil {
+    //    return nil, err
+    //}
     args := abi.Arguments{
         {Type: tupleArray, Name: "calls"},
         //{Type: boolean, Name: "strict"},
@@ -240,8 +240,8 @@ func (calls ViewCalls) decodeWrapper(raw string) (*wrapperRet, error) {
         return nil, err
     }
     returnType, err := abi.NewType("tuple[]", "", []abi.ArgumentMarshaling{
-        {Name: "Success", Type: "bool"},
-        {Name: "Data", Type: "bytes"},
+        //{Name: "Success", Type: "bool"},
+        {Name: "Data", Type: "bytes[]"},
     })
     if err != nil {
         return nil, err

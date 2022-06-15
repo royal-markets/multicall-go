@@ -220,8 +220,8 @@ func (calls ViewCalls) callData() ([]byte, error) {
 }
 
 type retType struct {
-    Success bool
-    Data    []byte
+    //Success bool
+    Data []byte
 }
 
 type wrapperRet struct {
@@ -264,8 +264,8 @@ func (calls ViewCalls) decodeWrapper(raw string) (*wrapperRet, error) {
     for i := 0; i < returns.Len(); i++ {
         elem := returns.Index(i)
         ret := retType{
-            Success: elem.FieldByName("Success").Bool(),
-            Data:    elem.FieldByName("Data").Bytes(),
+            //Success: elem.FieldByName("Success").Bool(),
+            Data: elem.FieldByName("Data").Bytes(),
         }
         decoded.Returns = append(decoded.Returns, ret)
     }

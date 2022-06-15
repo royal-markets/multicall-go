@@ -239,10 +239,7 @@ func (calls ViewCalls) decodeWrapper(raw string) (*wrapperRet, error) {
     if err != nil {
         return nil, err
     }
-    returnType, err := abi.NewType("tuple[]", "", []abi.ArgumentMarshaling{
-        //{Name: "Success", Type: "bool"},
-        {Name: "Data", Type: "bytes[]"},
-    })
+    returnType, err := abi.NewType("bytes[]", "", nil)
     if err != nil {
         return nil, err
     }

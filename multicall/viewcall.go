@@ -216,7 +216,7 @@ func (calls ViewCalls) callData() ([]byte, error) {
         {Type: tupleArray, Name: "calls"},
         //{Type: boolean, Name: "strict"},
     }
-    return args.Pack(payloadArgs, false)
+    return args.Pack(payloadArgs)
 }
 
 type retType struct {
@@ -239,17 +239,17 @@ func (calls ViewCalls) decodeWrapper(raw string) (*wrapperRet, error) {
     if err != nil {
         return nil, err
     }
-    returnType, err := abi.NewType("bytes[]", "", nil)
+    returnType, err := abi.NewType("bytes[]", "bytes[]", nil)
     if err != nil {
         return nil, err
     }
     wrapperArgs := abi.Arguments{
         {
-            Name: "BlockNumber",
+            Name: "blockNumber",
             Type: uint256Type,
         },
         {
-            Name: "Returns",
+            Name: "returnData",
             Type: returnType,
         },
     }
@@ -265,7 +265,7 @@ func (calls ViewCalls) decodeWrapper(raw string) (*wrapperRet, error) {
         elem := returns.Index(i)
         ret := retType{
             //Success: elem.FieldByName("Success").Bool(),
-            Data: elem.FieldByName("Data").Bytes(),
+            Data: elem.Bytes(),
         }
         decoded.Returns = append(decoded.Returns, ret)
     }
@@ -306,7 +306,7 @@ func (calls ViewCalls) decode(raw string) (*Result, error) {
             //Success: decoded.Returns[index].Success,
             Raw: decoded.Returns[index].Data,
         }
-       
+
         returnValues, err := call.decode(decoded.Returns[index].Data)
         if err != nil {
             return nil, err

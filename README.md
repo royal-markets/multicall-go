@@ -1,6 +1,7 @@
-[![CircleCI](https://circleci.com/gh/Alethio/multicall-go.svg?style=svg)](https://circleci.com/gh/Alethio/multicall-go)
-
 ### Multicall
+**NOTE**: This repo is a fork of [https://github.com/Alethio/web3-multicall-go](https://github.com/Alethio/web3-multicall-go).
+The main difference between this fork and the original is that this fork supports only the [original MakerDAO](https://github.com/makerdao/multicall)
+contract ABI.
 
 Wrapper for [Multicall](https://github.com/bowd/multicall) which batches calls to contract
 view functions into a single call and reads all the state in one EVM round-trip.
@@ -11,55 +12,92 @@ The library is used in conjunction with [web3-go](https://github.com/Alethio/web
 
 #### Initialization
 
-The library requires the [Multicall](https://github.com/bowd/multicall) contract to pe deployed on the target chain.
-We have deployed two variants on Mainnet and Ropsten so far which can be used by using the provided configs.
-
-
-```go
-// Mainnet
-mc, err := multicall.New(eth, multicall.ContractAddress(multicall.MainnetAddress))
-// Ropsten
-mc, err := multicall.New(eth, multicall.ContractAddress(multicall.RopstenAddress))
-```
-
-
-You can also set the gas used for the read transaction:
-
-```go
-mc, err := multicall.New(eth, multicall.ContractAddress(multicall.RopstenAddress), multicall.SetGas(40000))
-```
-
-In this case the contract deployed has to maintain the same function signature as the original one.
+This library requires the [MakerDAO multicall](https://github.com/makerdao/multicall) repo to be deployed on the target
+chain. 
 
 #### Calling
 
 ```go
-vcs := ViewCalls{
-    multicall.NewViewCall(
-        "key-1",
-        "0x5eb3fa2dfecdde21c950813c665e9364fa609bd2",
-        "getLastBlockHash()(bytes32)",
-        []interface{}{},
-    ),
-    multicall.NewViewCall(
-        "key-2",
-        "0x6b175474e89094c44da98b954eedeac495271d0f",
-        "balanceOf(address)(uint256)",
-        []interface{}{"0x8134d518e0cef5388136c0de43d7e12278701ac5"},
-    ),
-}
-block := "latest" // default block parameter
-res, err := mc.Call(vcs, block)
-if err != nil {
-    panic(err)
+package main
+
+import (
+    "fmt"
+    "log"
+    "math/big"
+    "os"
+
+    "github.com/TimelyToga/web3-multicall-go/multicall"
+    "github.com/alethio/web3-go/ethrpc"
+    "github.com/alethio/web3-go/ethrpc/provider/httprpc"
+    "github.com/ethereum/go-ethereum/common"
+)
+
+// PolygonMulticallAddress was retrieved from official MakerDAO repo: https://github.com/makerdao/multicall
+const PolygonMulticallAddress = "0x11ce4B23bD875D7F5C6a31084f55fDe1e9A87507"
+
+const (
+    balanceOfMethod = "balanceOf(address,uint256)(uint256)"
+    ownerOfMethod   = "ownerOf(uint256)(address)"
+)
+
+// ComposeLDA_ID composes an LDA ID from it's composite parts
+func ComposeLDA_ID(tierID, tokenID *big.Int) *big.Int {
+    return new(big.Int).Add(new(big.Int).Lsh(tierID, 128), tokenID)
 }
 
-lastBlockHashSuccess = res.Calls["key-1"].Success;
-lastBlockHash := res.Calls["key-1"].Decoded[0].([32]byte);
+func main() {
+    rpcURL := os.Getenv("RPC_URL")
+    if rpcURL == "" {
+        log.Fatal("RPC_URL must be set")
+    }
 
-someBalanceSuccess := res.Calls["key-2"].Success;
-someBalance := res.Calls["key-2"].Decoded[0].(*multicall.BigIntJSONString);
-someBalanceInt := big.Int(*someBalance);
+    provider, err := httprpc.New(rpcURL)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    eth, err := ethrpc.New(provider)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    mc, err := multicall.New(eth, multicall.ContractAddress(PolygonMulticallAddress))
+    fmt.Printf("%#v\n", mc)
+
+    vcs := multicall.ViewCalls{}
+    ids := []string{}
+
+    tier := big.NewInt(3)
+    for a := 0; a < 100; a++ {
+        ldaID := ComposeLDA_ID(tier, big.NewInt(int64(a+1)))
+        call := multicall.NewViewCall(
+            fmt.Sprintf("owner-%d", a),
+            "0x7c885c4bFd179fb59f1056FBea319D579A278075",
+            ownerOfMethod,
+            []interface{}{ldaID.String()},
+        )
+        ids = append(ids, ldaID.String())
+
+        vcs = append(vcs, call)
+    }
+
+    // Default block parameter
+    //block := "0x196166a"
+    block := "latest"
+    res, err := mc.Call(vcs, block)
+    if err != nil {
+        panic(err)
+    }
+
+    for a := 0; a < 100; a++ {
+        key := fmt.Sprintf("owner-%d", a)
+        value := res.Calls[key]
+        ownerAddress := value.Decoded[0].(common.Address)
+        ldaID := ids[a]
+        fmt.Println(key, ":", ldaID, ownerAddress.String())
+    }
+}
+
 ```
 
-In the example above we batch two calls to two different contracts and get back a map of `CallResults` which contain the exit value an array of returned values (`[]interface{}`) which are decoded by the `go-ethereum` package.
+This example shows a multicall query of the `ownerOf()` function in the Royal1155LDA contract for a 100 tokens at once.

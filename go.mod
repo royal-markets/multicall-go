@@ -1,4 +1,4 @@
-module github.com/royal-markets/web3-multicall-go
+module github.com/royal-markets/multicall-go
 
 require (
 	github.com/ethereum/go-ethereum v1.10.15

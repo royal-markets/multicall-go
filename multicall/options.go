@@ -1,36 +1,27 @@
 package multicall
 
-import "fmt"
-
 type Option func(*Config)
 
+// Config defines the Config for a multicall client
 type Config struct {
-	MulticallAddress string
-	Gas				 string
+    MulticallAddress string
+    Gas              uint64
 }
 
 const (
-	// MainnetMulticall : Multicall contract address on mainnet
-	MainnetAddress = "0x5eb3fa2dfecdde21c950813c665e9364fa609bd2"
-	// RopstenMulticall : Multicall contract address on Ropsten
-	RopstenAddress = "0xf3ad7e31b052ff96566eedd218a823430e74b406"
+// TODO: Add Multicall addresses for various networks
 )
 
-
-func ContractAddress(address string) Option {
-	return func(c *Config) {
-		c.MulticallAddress = address
-	}
+// SetContractAddress will update the contract address for the Config
+func SetContractAddress(address string) Option {
+    return func(c *Config) {
+        c.MulticallAddress = address
+    }
 }
 
+// SetGas will update the gas limit to the given value
 func SetGas(gas uint64) Option {
-	return func(c *Config) {
-		c.Gas = fmt.Sprintf("0x%x", gas)
-	}
-}
-
-func SetGasHex(gas string) Option {
-	return func(c *Config) {
-		c.Gas = gas
-	}
+    return func(c *Config) {
+        c.Gas = gas
+    }
 }

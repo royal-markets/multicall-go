@@ -9,7 +9,7 @@ import (
     "github.com/ethereum/go-ethereum/common"
     "github.com/ethereum/go-ethereum/common/hexutil"
 
-    "github.com/royal-markets/web3-multicall-go/royal"
+    "github.com/royal-markets/multicall-go/royal"
 )
 
 type Multicall interface {

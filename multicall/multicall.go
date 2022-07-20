@@ -3,6 +3,7 @@ package multicall
 import (
     "context"
     "fmt"
+    "math/big"
 
     "github.com/ethereum/go-ethereum"
     "github.com/ethereum/go-ethereum/common"
@@ -22,10 +23,26 @@ type multicall struct {
     config *Config
 }
 
+const (
+    AggregateMethod = "0x252dba42"
+    DefaultGasValue = uint64(17179869184)
+)
+
+var AggregateMethodBytes []byte
+
 func New(_client royal.EthClient, opts ...Option) (Multicall, error) {
+    // Initialize the parsing of the hex bytes into a global var
+    if AggregateMethodBytes == nil {
+        aggMethodBytes, err := hexutil.Decode(AggregateMethod)
+        if err != nil {
+            return nil, fmt.Errorf("unable to decode the aggregate method string: (err: %s)\n", err)
+        }
+
+        AggregateMethodBytes = aggMethodBytes
+    }
+
     config := &Config{
-        MulticallAddress: "",
-        Gas:              17179869184,
+        Gas: DefaultGasValue,
     }
 
     for _, opt := range opts {
@@ -39,7 +56,6 @@ func New(_client royal.EthClient, opts ...Option) (Multicall, error) {
 }
 
 type CallResult struct {
-    //Success bool
     Raw     []byte
     Decoded []interface{}
 }
@@ -48,8 +64,6 @@ type Result struct {
     BlockNumber uint64
     Calls       map[string]CallResult
 }
-
-const AggregateMethod = "0x252dba42"
 
 func (mc multicall) CallRaw(calls ViewCalls, block string) (*Result, error) {
     resultRaw, err := mc.makeRequest(calls, block)
@@ -85,21 +99,15 @@ func (mc multicall) Call(calls ViewCalls, block string) (*Result, error) {
 func (mc multicall) makeRequest(calls ViewCalls, block string) (string, error) {
     to := common.HexToAddress(mc.config.MulticallAddress)
 
-    // TODO: Do this once instead of many times
-    aggMethodBytes, err := hexutil.Decode(AggregateMethod)
-    if err != nil {
-        return "", fmt.Errorf("unable to decode the aggregate method string: (err: %s)\n", err)
-    }
-
     // Convert the calls into abi packed bytes for transmission to the chain
     payloadArgs, err := calls.callData()
     if err != nil {
         return "", fmt.Errorf("unable to serialize calldata (err: %s)\n", err)
     }
 
-    // Pre-pend the method bytes to the beginning of the payload
     // TODO: This should be done elsewhere
-    payloadArgs = append(aggMethodBytes, payloadArgs...)
+    // Pre-pend the method bytes to the beginning of the payload
+    payloadArgs = append(AggregateMethodBytes, payloadArgs...)
 
     callMsg := ethereum.CallMsg{
         To:   &to,
@@ -107,8 +115,14 @@ func (mc multicall) makeRequest(calls ViewCalls, block string) (string, error) {
         Data: payloadArgs,
     }
 
-    // TODO: Actually use the blockNumber
-    resultBytes, err := mc.client.CallContract(context.Background(), callMsg, nil)
+    // TODO: Require a *big.Int blockNumber
+    // Parse block number from the input string
+    blockBig, ok := new(big.Int).SetString(block, 10)
+    if !ok {
+        blockBig = nil
+    }
+
+    resultBytes, err := mc.client.CallContract(context.Background(), callMsg, blockBig)
     if err != nil {
         return "", fmt.Errorf("trouble issuing eth_call for multicall: (err: %s)\n", err)
     }
